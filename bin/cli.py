@@ -21,21 +21,26 @@ DATA_DIR = PROJECT_ROOT / "data"
 @main.command()
 def train(
 
-    #This is what I presume is an example of using typer to make this an input via cli
     name: str = typer.Option(
         ..., "-n", "--name", help="Name of experiment to save under."
     ),
 
     #Make all hyperparameters inputs via the cli using typer:
-    parameters: str = typer.Option(
-        ..., "-n", "--name", help="Add a command line argument that will retrieve model parameters based on the setup params section below."
+    epochs: int = typer.Option(
+        ..., "-n", "--epochs", help="Add epochs."
+    ),
+
+    batch_size: int = typer.Option(
+        ..., "-n", "--batch_size", help="Add batch size."
+    ),
+
+    learning_rate: int = typer.Option(
+        ..., "-n", "--learning_rate", help="Add learning rate."
     ),
 ):
+
     print(f"Running experiment {name}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    epochs = 2
-    batch_size = 1000
-    learning_rate = 0.01
 
     # save the parameters!
 
