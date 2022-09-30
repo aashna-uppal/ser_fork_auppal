@@ -1,3 +1,7 @@
+#Disclaimer for Tom & Claudia: 
+#I haven't done ML before and learned Python a handful of days before so I am totally misunderstanding what parts of this code do...
+#But trying my best to complete the steps!
+
 from pathlib import Path
 import torch
 from torch import optim
@@ -5,8 +9,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-
+from datetime import date, datetime
+import json
+import os
 import typer
+from dataclasses import dataclass
+from git import Repo
+
+#Import refactored functions
+from ser_scripts.transforms import transform_torch
+from ser_scripts.model import model_load
+from ser_scripts.data import create_dataloaders
+from ser_scripts.train import train_model
 
 main = typer.Typer()
 
@@ -16,102 +30,95 @@ DATA_DIR = PROJECT_ROOT / "data"
 
 @main.command()
 def train(
+
     name: str = typer.Option(
         ..., "-n", "--name", help="Name of experiment to save under."
     ),
+
+    #Make all hyperparameters inputs via the cli using typer:
+    #EPOCHS --------------------------------------------------
+    epochs: int = typer.Option(
+        ..., "-e", "--epochs", help="Add epochs."
+    ),
+    #BATCH SIZE ----------------------------------------------
+    batch_size: int = typer.Option(
+        ..., "-b", "--batch_size", help="Add batch size."
+    ),
+    #LEARNING RATE -------------------------------------------
+    learning_rate: float = typer.Option(
+        ..., "-l", "--learning_rate", help="Add learning rate."
+    ),
 ):
+
     print(f"Running experiment {name}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    epochs = 2
-    batch_size = 1000
-    learning_rate = 0.01
 
-    # save the parameters!
+    #Create dataclass for model parameters:
+    class Hyperparameters:
+        name: str
+        epochs: int
+        batch_size: int
+        learning_rate: float
+    
+    ##-------------------------------------------------------
 
-    # load model
-    model = Net().to(device)
-
-    # setup params
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # load model and set up parameters
+    model_load(learning_rate)
 
     # torch transforms
-    ts = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-    )
+    transform_torch()
 
-    # dataloaders
-    training_dataloader = DataLoader(
-        datasets.MNIST(root="../data", download=True, train=True, transform=ts),
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=1,
-    )
+    # load training and validation data loader
+    create_dataloaders(batch_size)
 
-    validation_dataloader = DataLoader(
-        datasets.MNIST(root=DATA_DIR, download=True, train=False, transform=ts),
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=1,
-    )
+    # train model
+    train_model(learning_rate, epochs, batch_size)
 
-    # train
-    for epoch in range(epochs):
-        for i, (images, labels) in enumerate(training_dataloader):
-            images, labels = images.to(device), labels.to(device)
-            model.train()
-            optimizer.zero_grad()
-            output = model(images)
-            loss = F.nll_loss(output, labels)
-            loss.backward()
-            optimizer.step()
-            print(
-                f"Train Epoch: {epoch} | Batch: {i}/{len(training_dataloader)} "
-                f"| Loss: {loss.item():.4f}"
-            )
-            # validate
-            val_loss = 0
-            correct = 0
-            with torch.no_grad():
-                for images, labels in validation_dataloader:
-                    images, labels = images.to(device), labels.to(device)
-                    model.eval()
-                    output = model(images)
-                    val_loss += F.nll_loss(output, labels, reduction="sum").item()
-                    pred = output.argmax(dim=1, keepdim=True)
-                    correct += pred.eq(labels.view_as(pred)).sum().item()
-                val_loss /= len(validation_dataloader.dataset)
-                val_acc = correct / len(validation_dataloader.dataset)
+    ##-------------------------------------------------------
 
-                print(
-                    f"Val Epoch: {epoch} | Avg Loss: {val_loss:.4f} | Accuracy: {val_acc}"
-                )
+   # First save some important parameters
+    exp_date = str(date.today())
+    exp_time = str(datetime.now().strftime("%H:%M:%S"))
+    exp_name = str(name)
+    exp_epoch = epochs
+    exp_batch = batch_size
+    exp_learn = learning_rate
+    repo = Repo(search_parent_directories=True)
+    exp_gitcommit = repo.head.object.hexsha
 
+    # Change working directory
+    os.chdir('/Users/cdtadmin/SER_practical/ser_fork_auppal/ser_experiments')
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(9216, 128)
-        self.fc2 = nn.Linear(128, 10)
+    # Make folder for the current experiment
+    parent_directory = "/Users/cdtadmin/SER_practical/ser_fork_auppal/ser_experiments"
+    current_run_directory = exp_name + "_" + exp_date + "_" + exp_time
+    run_path = os.path.join(parent_directory, current_run_directory)
+    os.mkdir(run_path)
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+    # Change working directory to that new folder and save both parameters and model into that
+    os.chdir(run_path)
 
+    # Write and save parameters in a json file
+    parameters_list = [{"Date":exp_date, "Experiment Name":exp_name, "Epochs":exp_epoch, "Batch Size":exp_batch, "Learning Rate":exp_learn, "Git Commits:":exp_gitcommit}]
+    jsonFile = open("PARAMETERS_"+exp_name+"_"+exp_date+".json", "w")
+    jsonString = json.dumps(parameters_list)
+    jsonFile.write(jsonString)
+    jsonFile.close()
+
+     # Save highest accuracy value in json file
+    acc_value = [{"Accuracy":"test"}]
+    jsonFile_acc = open("Highest Accuracy_"+exp_name+"_"+exp_date+".json", "w")
+    jsonString_acc = json.dumps(acc_value)
+    jsonFile_acc.write(jsonString_acc)
+    jsonFile_acc.close()
+
+    # Save model itself
+    torch.save(model_load(learning_rate)[0].state_dict(), f = ("MODEL_"+exp_name+"_"+exp_date+".pth"))
+
+    # Save model with the highest accuracy
+    torch.save(model_load(learning_rate)[0].state_dict(), f = ("Most Accurate Model_"+exp_name+"_"+exp_date+".pth"))
+
+    ##-------------------------------------------------------
 
 @main.command()
 def infer():
