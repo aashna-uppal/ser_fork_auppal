@@ -13,6 +13,8 @@ from datetime import date, datetime
 import json
 import os
 import typer
+from dataclasses import dataclass
+from git import Repo
 
 #Import refactored functions
 from ser_scripts.transforms import transform_torch
@@ -51,6 +53,13 @@ def train(
     print(f"Running experiment {name}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    #Create dataclass for model parameters:
+    class Hyperparameters:
+        name: str
+        epochs: int
+        batch_size: int
+        learning_rate: float
+    
     ##-------------------------------------------------------
 
     # load model and set up parameters
@@ -67,14 +76,15 @@ def train(
 
     ##-------------------------------------------------------
 
-    # Save experiment parameters to txt file in ser_experiments directory
-    # First save some important parameters
+   # First save some important parameters
     exp_date = str(date.today())
     exp_time = str(datetime.now().strftime("%H:%M:%S"))
     exp_name = str(name)
     exp_epoch = epochs
     exp_batch = batch_size
     exp_learn = learning_rate
+    repo = Repo(search_parent_directories=True)
+    exp_gitcommit = repo.head.object.hexsha
 
     # Change working directory
     os.chdir('/Users/cdtadmin/SER_practical/ser_fork_auppal/ser_experiments')
@@ -89,14 +99,24 @@ def train(
     os.chdir(run_path)
 
     # Write and save parameters in a json file
-    parameters_list = [{"Date":exp_date, "Experiment Name":exp_name, "Epochs":exp_epoch, "Batch Size":exp_batch, "Learning Rate":exp_learn}]
+    parameters_list = [{"Date":exp_date, "Experiment Name":exp_name, "Epochs":exp_epoch, "Batch Size":exp_batch, "Learning Rate":exp_learn, "Git Commits:":exp_gitcommit}]
     jsonFile = open("PARAMETERS_"+exp_name+"_"+exp_date+".json", "w")
     jsonString = json.dumps(parameters_list)
     jsonFile.write(jsonString)
     jsonFile.close()
 
+     # Save highest accuracy value in json file
+    acc_value = [{"Accuracy":"test"}]
+    jsonFile_acc = open("Highest Accuracy_"+exp_name+"_"+exp_date+".json", "w")
+    jsonString_acc = json.dumps(acc_value)
+    jsonFile_acc.write(jsonString_acc)
+    jsonFile_acc.close()
+
     # Save model itself
     torch.save(model_load(learning_rate)[0].state_dict(), f = ("MODEL_"+exp_name+"_"+exp_date+".pth"))
+
+    # Save model with the highest accuracy
+    torch.save(model_load(learning_rate)[0].state_dict(), f = ("Most Accurate Model_"+exp_name+"_"+exp_date+".pth"))
 
     ##-------------------------------------------------------
 
