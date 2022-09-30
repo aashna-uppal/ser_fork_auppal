@@ -12,6 +12,9 @@ from torchvision import datasets, transforms
 
 import typer
 
+#Import refactored functions
+from ser_scripts.transforms import transform_torch
+
 main = typer.Typer()
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -26,23 +29,24 @@ def train(
     ),
 
     #Make all hyperparameters inputs via the cli using typer:
+    #EPOCHS --------------------------------------------------
     epochs: int = typer.Option(
-        ..., "-n", "--epochs", help="Add epochs."
+        ..., "-e", "--epochs", help="Add epochs."
     ),
-
+    #BATCH SIZE ----------------------------------------------
     batch_size: int = typer.Option(
-        ..., "-n", "--batch_size", help="Add batch size."
+        ..., "-b", "--batch_size", help="Add batch size."
     ),
-
-    learning_rate: int = typer.Option(
-        ..., "-n", "--learning_rate", help="Add learning rate."
+    #LEARNING RATE -------------------------------------------
+    learning_rate: float = typer.Option(
+        ..., "-l", "--learning_rate", help="Add learning rate."
     ),
 ):
 
     print(f"Running experiment {name}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # save the parameters!
+    # save the parameters! 
 
     # load model
     model = Net().to(device)
@@ -51,20 +55,18 @@ def train(
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # torch transforms
-    ts = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-    )
+    transform_torch()
 
     # dataloaders
     training_dataloader = DataLoader(
-        datasets.MNIST(root="../data", download=True, train=True, transform=ts),
+        datasets.MNIST(root="../data", download=True, train=True, transform=transform_torch()),
         batch_size=batch_size,
         shuffle=True,
         num_workers=1,
     )
 
     validation_dataloader = DataLoader(
-        datasets.MNIST(root=DATA_DIR, download=True, train=False, transform=ts),
+        datasets.MNIST(root=DATA_DIR, download=True, train=False, transform=transform_torch()),
         batch_size=batch_size,
         shuffle=False,
         num_workers=1,
