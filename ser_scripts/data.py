@@ -5,10 +5,10 @@ from torchvision import datasets
 from pathlib import Path   
 from ser_scripts.transforms import transform_torch 
 
-def create_dataloaders(batch_size):
+PROJECT_ROOT = Path(__file__).parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
 
-    PROJECT_ROOT = Path(__file__).parent.parent
-    DATA_DIR = PROJECT_ROOT / "data"
+def create_dataloaders(batch_size):
 
     # dataloaders
     training_dataloader = DataLoader(
