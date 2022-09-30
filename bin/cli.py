@@ -1,3 +1,7 @@
+#Disclaimer for Tom & Claudia: 
+#I haven't done ML before and learned Python a handful of days before so I am totally misunderstanding what parts of this code do...
+#But trying my best to complete the steps!
+
 from pathlib import Path
 import torch
 from torch import optim
@@ -16,8 +20,15 @@ DATA_DIR = PROJECT_ROOT / "data"
 
 @main.command()
 def train(
+
+    #This is what I presume is an example of using typer to make this an input via cli
     name: str = typer.Option(
         ..., "-n", "--name", help="Name of experiment to save under."
+    ),
+
+    #Make all hyperparameters inputs via the cli using typer:
+    parameters: str = typer.Option(
+        ..., "-n", "--name", help="Add a command line argument that will retrieve model parameters based on the setup params section below."
     ),
 ):
     print(f"Running experiment {name}")
