@@ -14,6 +14,7 @@ import typer
 
 #Import refactored functions
 from ser_scripts.transforms import transform_torch
+from ser_scripts.model import model_load
 
 main = typer.Typer()
 
@@ -46,13 +47,8 @@ def train(
     print(f"Running experiment {name}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # save the parameters! 
-
-    # load model
-    model = Net().to(device)
-
-    # setup params
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # load model and set up parameters
+    model_load()
 
     # torch transforms
     transform_torch()
@@ -76,12 +72,12 @@ def train(
     for epoch in range(epochs):
         for i, (images, labels) in enumerate(training_dataloader):
             images, labels = images.to(device), labels.to(device)
-            model.train()
-            optimizer.zero_grad()
-            output = model(images)
+            model_load()[0].train()
+            model_load()[1].zero_grad()
+            output = model_load()[0](images)
             loss = F.nll_loss(output, labels)
             loss.backward()
-            optimizer.step()
+            model_load()[1].step()
             print(
                 f"Train Epoch: {epoch} | Batch: {i}/{len(training_dataloader)} "
                 f"| Loss: {loss.item():.4f}"
@@ -92,8 +88,8 @@ def train(
             with torch.no_grad():
                 for images, labels in validation_dataloader:
                     images, labels = images.to(device), labels.to(device)
-                    model.eval()
-                    output = model(images)
+                    model_load()[0].eval()
+                    output = model_load()[0](images)
                     val_loss += F.nll_loss(output, labels, reduction="sum").item()
                     pred = output.argmax(dim=1, keepdim=True)
                     correct += pred.eq(labels.view_as(pred)).sum().item()
