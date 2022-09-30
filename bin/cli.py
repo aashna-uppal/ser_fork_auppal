@@ -9,7 +9,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-
+from datetime import date, datetime
+import json
+import os
 import typer
 
 #Import refactored functions
@@ -49,6 +51,8 @@ def train(
     print(f"Running experiment {name}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    ##-------------------------------------------------------
+
     # load model and set up parameters
     model_load(learning_rate)
 
@@ -61,6 +65,40 @@ def train(
     # train model
     train_model(learning_rate, epochs, batch_size)
 
+    ##-------------------------------------------------------
+
+    # Save experiment parameters to txt file in ser_experiments directory
+    # First save some important parameters
+    exp_date = str(date.today())
+    exp_time = str(datetime.now().strftime("%H:%M:%S"))
+    exp_name = str(name)
+    exp_epoch = epochs
+    exp_batch = batch_size
+    exp_learn = learning_rate
+
+    # Change working directory
+    os.chdir('/Users/cdtadmin/SER_practical/ser_fork_auppal/ser_experiments')
+
+    # Make folder for the current experiment
+    parent_directory = "/Users/cdtadmin/SER_practical/ser_fork_auppal/ser_experiments"
+    current_run_directory = exp_name + "_" + exp_date + "_" + exp_time
+    run_path = os.path.join(parent_directory, current_run_directory)
+    os.mkdir(run_path)
+
+    # Change working directory to that new folder and save both parameters and model into that
+    os.chdir(run_path)
+
+    # Write and save parameters in a json file
+    parameters_list = [{"Date":exp_date, "Experiment Name":exp_name, "Epochs":exp_epoch, "Batch Size":exp_batch, "Learning Rate":exp_learn}]
+    jsonFile = open("PARAMETERS_"+exp_name+"_"+exp_date+".json", "w")
+    jsonString = json.dumps(parameters_list)
+    jsonFile.write(jsonString)
+    jsonFile.close()
+
+    # Save model itself
+    torch.save(model_load(learning_rate)[0].state_dict(), f = ("MODEL_"+exp_name+"_"+exp_date+".pth"))
+
+    ##-------------------------------------------------------
 
 @main.command()
 def infer():

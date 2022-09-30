@@ -64,6 +64,6 @@ def train_model(learning_rate, epochs, batch_size):
                 val_loss /= len(create_dataloaders(batch_size)[1].dataset)
                 val_acc = correct / len(create_dataloaders(batch_size)[1].dataset)
 
-                return(print(
+                print(
                     f"Val Epoch: {epoch} | Avg Loss: {val_loss:.4f} | Accuracy: {val_acc}"
-                ))
+                )
