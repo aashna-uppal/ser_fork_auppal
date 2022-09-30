@@ -5,7 +5,7 @@ from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
 
-def model_load():
+def model_load(learning_rate):
 
     class Net(nn.Module):
         def __init__(self):
@@ -37,7 +37,6 @@ def model_load():
     model = Net().to(device)
 
     # setup params
-    learning_rate = 0.01
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     return(model, optimizer)

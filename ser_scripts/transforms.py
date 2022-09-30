@@ -1,7 +1,6 @@
 # transforms.py
 
 # torch transforms
-
 from torchvision import transforms
 
 def transform_torch():

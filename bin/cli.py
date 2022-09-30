@@ -15,6 +15,7 @@ import typer
 #Import refactored functions
 from ser_scripts.transforms import transform_torch
 from ser_scripts.model import model_load
+from ser_scripts.data import create_dataloaders
 
 main = typer.Typer()
 
@@ -48,53 +49,41 @@ def train(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # load model and set up parameters
-    model_load()
+    model_load(learning_rate)
 
     # torch transforms
     transform_torch()
 
-    # dataloaders
-    training_dataloader = DataLoader(
-        datasets.MNIST(root="../data", download=True, train=True, transform=transform_torch()),
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=1,
-    )
-
-    validation_dataloader = DataLoader(
-        datasets.MNIST(root=DATA_DIR, download=True, train=False, transform=transform_torch()),
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=1,
-    )
+    # load training and validation data loader
+    create_dataloaders(batch_size)
 
     # train
     for epoch in range(epochs):
-        for i, (images, labels) in enumerate(training_dataloader):
+        for i, (images, labels) in enumerate(create_dataloaders(batch_size)[0]):
             images, labels = images.to(device), labels.to(device)
-            model_load()[0].train()
-            model_load()[1].zero_grad()
-            output = model_load()[0](images)
+            model_load(learning_rate)[0].train()
+            model_load(learning_rate)[1].zero_grad()
+            output = model_load(learning_rate)[0](images)
             loss = F.nll_loss(output, labels)
             loss.backward()
-            model_load()[1].step()
+            model_load(learning_rate)[1].step()
             print(
-                f"Train Epoch: {epoch} | Batch: {i}/{len(training_dataloader)} "
+                f"Train Epoch: {epoch} | Batch: {i}/{len(create_dataloaders(batch_size)[0])} "
                 f"| Loss: {loss.item():.4f}"
             )
             # validate
             val_loss = 0
             correct = 0
             with torch.no_grad():
-                for images, labels in validation_dataloader:
+                for images, labels in create_dataloaders(batch_size)[1]:
                     images, labels = images.to(device), labels.to(device)
-                    model_load()[0].eval()
-                    output = model_load()[0](images)
+                    model_load(learning_rate)[0].eval()
+                    output = model_load(learning_rate)[0](images)
                     val_loss += F.nll_loss(output, labels, reduction="sum").item()
                     pred = output.argmax(dim=1, keepdim=True)
                     correct += pred.eq(labels.view_as(pred)).sum().item()
-                val_loss /= len(validation_dataloader.dataset)
-                val_acc = correct / len(validation_dataloader.dataset)
+                val_loss /= len(create_dataloaders(batch_size)[1].dataset)
+                val_acc = correct / len(create_dataloaders(batch_size)[1].dataset)
 
                 print(
                     f"Val Epoch: {epoch} | Avg Loss: {val_loss:.4f} | Accuracy: {val_acc}"
