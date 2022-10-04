@@ -21,10 +21,14 @@ def flip():
     """
     Flip a tensor both vertically and horizontally
     """
+
+#Notes: if flipping horizontally or vertically, will some parameters change?
+#Maybe can check if parameters change to check if it has flipped. 
+
     return torch_transforms.Compose(
         [
-            torch_transforms.RandomHorizontalFlip(p=1.0),
-            torch_transforms.RandomVerticalFlip(p=1.0),
+            torch_transforms.RandomHorizontalFlip(p=0.5),
+            torch_transforms.RandomVerticalFlip(p=0.5),
         ]
     )
     

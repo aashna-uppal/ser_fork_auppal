@@ -5,6 +5,8 @@ from xmlrpc.client import boolean
 import typer
 import torch
 import git
+import os
+import json
 
 from ser.train import train as run_train
 from ser.constants import RESULTS_DIR
@@ -81,3 +83,36 @@ def infer(
     model = torch.load(run_path / "model.pt")
     image = _select_test_image(label, flip_image, normalize_image)
     run_infer(params, model, image, label)
+
+@main.command()
+def model_load():
+    # Getting the current work directory (cwd)
+    thisdir = os.getcwd()
+
+    # r=root, d=directories, f = files
+    for r, d, f in os.walk(thisdir):
+
+        # Go through each file    
+        for file in f:
+
+            # We're concerned with the results.json files only
+            if file.startswith("results"):
+                
+                # Open up results file
+                with open(os.path.join(r, file), "r") as f:
+
+                    # Load in file
+                    model_results = json.load(f)
+
+                    # Set best accuracy to 0 at first
+                    best_accuracy = 0
+
+                    # If model's accuracy is better than best_accuracy, reset best accuracy and save model as best_model
+                    if model_results['Accuracy'] > best_accuracy:
+                        best_accuracy = model_results['Accuracy']
+                        best_model = torch.load(os.path.join(r, "model.pt"))
+                        torch.save(best_model, os.path.join('./results/','best_model.pt'))
+
+                    #If model's accraucy is NOT better than best_accuracy, then keep best_accuracy as is and don't save model
+                    else:
+                        best_accuracy = best_accuracy
