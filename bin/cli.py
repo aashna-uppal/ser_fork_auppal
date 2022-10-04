@@ -113,6 +113,6 @@ def model_load():
                         best_model = torch.load(os.path.join(r, "model.pt"))
                         torch.save(best_model, os.path.join('./results/','best_model.pt'))
 
-                    #If model's accraucy is NOT better than best_accuracy, then keep best_accuracy as is and don't save model
+                    #If model's accuracy is NOT better than best_accuracy, then keep best_accuracy as is and don't save model
                     else:
                         best_accuracy = best_accuracy
